@@ -10,6 +10,7 @@
 #define new DEBUG_NEW
 #endif
 CListCtrl m_listCtrl;
+int listIndex;
 // CCustomerManagementDlg dialog
 CCustomerManagementDlg::CCustomerManagementDlg(CWnd* pParent /*=nullptr*/)
 	: CDialog(IDD_CUSTOMERMANAGEMENT_DIALOG, pParent)
@@ -29,6 +30,7 @@ BEGIN_MESSAGE_MAP(CCustomerManagementDlg, CDialog)
 	ON_BN_CLICKED(IDC_CHANGE, &CCustomerManagementDlg::OnBnClickedChange)
 	ON_BN_CLICKED(IDC_DELETE, &CCustomerManagementDlg::OnBnClickedDelete)
 	ON_BN_CLICKED(IDC_SAVE, &CCustomerManagementDlg::OnBnClickedSave)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LIST1, &CCustomerManagementDlg::OnLvnItemchangedList1)
 END_MESSAGE_MAP()
 
 
@@ -113,6 +115,11 @@ void CCustomerManagementDlg::OnBnClickedChange()
 	CString SubName = subname;
 	GetDlgItemText(IDC_TEL, tel, 16);
 	CString TEL = tel;
+	if (!xmlParse.isValid(TEL)) {
+		MessageBox(NULL, "Lütfen geçerli bir telefon numarasý giriniz!!!",
+			MB_ICONWARNING | MB_DEFBUTTON2);
+		return;
+	}
 	GetDlgItemText(IDC_ADDRESS, address, 16);
 	CString Adres = address;
 	//go to first customer element and take its id value
@@ -120,12 +127,10 @@ void CCustomerManagementDlg::OnBnClickedChange()
 	tinyxml2::XMLElement* pItems = newElement->FirstChildElement("data");
 	tinyxml2::XMLElement* pItem = pItems->FirstChildElement("customer");
 	CString idd = pItem->ToElement()->Attribute("id");
-	int num = 0;
 	//find entered item from the xml elements according to given id value in the edit control
 	while (idd != ID && pItem->NextSiblingElement()) {		//travel elements till the find given element
 		pItem = pItem->NextSiblingElement();	//pass the next element
 		idd = pItem->ToElement()->Attribute("id");	//take item's id
-		num++;		//increase item's index
 	}
 	if (idd != ID) {
 		MessageBox(NULL, "Eleman bulunamadi!!!", MB_ICONWARNING | MB_DEFBUTTON2);
@@ -136,26 +141,17 @@ void CCustomerManagementDlg::OnBnClickedChange()
 	//Update xml file according to entered values take first child and insert values by their places
 	//by iterating first child element
 	tinyxml2::XMLElement* element = pItem->FirstChildElement("name");
-	if (NAME != "") {
-		m_listCtrl.SetItemText(num * 6 + 2, 0, "Name : " + NAME);
-		element->SetText(NAME);
-	}
+	element->SetText(NAME);
 	element = element->NextSiblingElement();
-	if (SubName != "") {
-		m_listCtrl.SetItemText(num * 6 + 3, 0, "SubName : " + SubName);
-		element->SetText(SubName);
-	}
+	element->SetText(SubName);
 	element = element->NextSiblingElement();
-	if (TEL != "") {
-		m_listCtrl.SetItemText(num * 6 + 4, 0, "Tel : " + TEL);
-		element->SetText(TEL);
-	}
+	element->SetText(TEL);
 	element = element->NextSiblingElement();
-	if (Adres != "") {
-		m_listCtrl.SetItemText(num * 6 + 5, 0, "Address : " + Adres);
-		element->SetText(Adres);
-	}
-
+	element->SetText(Adres);
+	m_listCtrl.SetItemText(listIndex, 1, NAME);
+	m_listCtrl.SetItemText(listIndex, 2, SubName);
+	m_listCtrl.SetItemText(listIndex, 3, TEL);
+	m_listCtrl.SetItemText(listIndex, 4, Adres);
 	xmlParse.xmlDoc.SaveFile("CustomerDB.xml");
 	//delete all edit control contents
 	SetDlgItemText(IDC_ID, "");
@@ -178,18 +174,16 @@ void CCustomerManagementDlg::OnBnClickedDelete()
 	tinyxml2::XMLElement* pItems = temp->FirstChildElement("data");		//take data element
 	tinyxml2::XMLElement* pItem = pItems->FirstChildElement("customer");	//came to first customer
 	CString idd = pItem->ToElement()->Attribute("id");		//take its id
-	int num = 0;
 	//iterate all child elements till the find given element according to its id
 	while (idd != ID && pItem->NextSiblingElement()) {		
 		pItem = pItem->NextSiblingElement();	//pass next element
 		idd = pItem->ToElement()->Attribute("id");	//take its id to compare given id
-		num++;						//increase item's index to trace its place
 	}
 	if (idd != ID) {
 		MessageBox(NULL, "Eleman bulunamadi!!!", MB_ICONWARNING | MB_DEFBUTTON2);
 		return;
 	}
-	xmlParse.deleteNode(pItem, num);
+	xmlParse.deleteNode(pItem, listIndex);
 }
 
 /*********************************************************************************************
@@ -205,10 +199,22 @@ void CCustomerManagementDlg::OnBnClickedSave()
 
 	tinyxml2::XMLElement* newElement = xmlParse.xmlDoc.RootElement();	//take root element
 	tinyxml2::XMLElement* pItems = newElement->FirstChildElement("data"); //take data element
+	tinyxml2::XMLElement* pItem = pItems->FirstChildElement("customer");	//came to first customer
+	CString idd = "";
+	if(pItem != nullptr)
+		idd = pItem->ToElement()->Attribute("id");		//take its id
 	char id[5], name[20], subname[20], tel[15], address[100];
 	//take values from edit controls and assign them to CString type variables
 	GetDlgItemText(IDC_ID, id, 16);
 	CString ID = id;
+	while (idd != "" && idd != ID && pItem->NextSiblingElement()) {
+		pItem = pItem->NextSiblingElement();	//pass next element
+		idd = pItem->ToElement()->Attribute("id");	//take its id to compare given id
+	}
+	if (idd == ID) {
+		MessageBox(NULL, "Lütfen geçerli id giriniz!!!", MB_ICONWARNING | MB_DEFBUTTON2);
+		return;
+	}
 	GetDlgItemText(IDC_NAME, name, 16);
 	CString NAME = name;
 	GetDlgItemText(IDC_SUBNAME, subname, 16);
@@ -218,8 +224,11 @@ void CCustomerManagementDlg::OnBnClickedSave()
 	GetDlgItemText(IDC_ADDRESS, address, 16);
 	CString Adres = address;
 	if (ID == "" || NAME == "" || SubName == "" || TEL == "" || Adres == "") {
-		MessageBox( NULL, "Lütfen eksik yerleri doldurunuz!!!", 
-			MB_ICONWARNING | MB_CANCELTRYCONTINUE | MB_DEFBUTTON2);
+		MessageBox( NULL, "Lütfen eksik yerleri doldurunuz!!!", MB_ICONWARNING | MB_DEFBUTTON2);
+		return;
+	}
+	else if (!xmlParse.isValid(TEL)) {
+		MessageBox(NULL, "Lütfen geçerli bir telefon numarasý giriniz!!!", MB_ICONWARNING | MB_DEFBUTTON2);
 		return;
 	}
 	//Create parent element and set attribute id
@@ -245,12 +254,12 @@ void CCustomerManagementDlg::OnBnClickedSave()
 	xmlParse.xmlDoc.LinkEndChild(newElement);
 	xmlParse.xmlDoc.SaveFile("CustomerDB.xml");
 	//add new element to list control
-	m_listCtrl.InsertItem(0, "----------data----------");
-	m_listCtrl.InsertItem(1, "id : " + ID);
-	m_listCtrl.InsertItem(2, "Name : " + NAME);
-	m_listCtrl.InsertItem(3, "SubName : " + SubName);
-	m_listCtrl.InsertItem(4, "Tel : " + TEL);
-	m_listCtrl.InsertItem(5, "Address : " + Adres);
+	nm = nm + 1;
+	int nIndex = m_listCtrl.InsertItem(nm, ID);
+	m_listCtrl.SetItemText(nIndex, 1, NAME);
+	m_listCtrl.SetItemText(nIndex, 2, SubName);
+	m_listCtrl.SetItemText(nIndex, 3, TEL);
+	m_listCtrl.SetItemText(nIndex, 4, Adres);
 	
 	//clear all edit lists
 	SetDlgItemText(IDC_ID, "");
@@ -258,4 +267,16 @@ void CCustomerManagementDlg::OnBnClickedSave()
 	SetDlgItemText(IDC_SUBNAME, "");
 	SetDlgItemText(IDC_TEL, "");
 	SetDlgItemText(IDC_ADDRESS, "");
+}
+
+
+void CCustomerManagementDlg::OnLvnItemchangedList1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	POSITION pos = m_listCtrl.GetFirstSelectedItemPosition();
+	listIndex = m_listCtrl.GetNextSelectedItem(pos);
+	SetDlgItemText(IDC_ID, m_listCtrl.GetItemText(listIndex, 0));
+	SetDlgItemText(IDC_NAME, m_listCtrl.GetItemText(listIndex, 1));
+	SetDlgItemText(IDC_SUBNAME, m_listCtrl.GetItemText(listIndex, 2));
+	SetDlgItemText(IDC_TEL, m_listCtrl.GetItemText(listIndex, 3));
+	SetDlgItemText(IDC_ADDRESS, m_listCtrl.GetItemText(listIndex, 4));
 }

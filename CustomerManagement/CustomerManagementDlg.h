@@ -37,4 +37,5 @@ public:
 	afx_msg void OnBnClickedChange();
 	afx_msg void OnBnClickedDelete();
 	afx_msg void OnBnClickedSave();
+	afx_msg void OnLvnItemchangedList1(NMHDR* pNMHDR, LRESULT* pResult);
 };

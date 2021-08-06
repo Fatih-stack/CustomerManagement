@@ -1,6 +1,9 @@
 ﻿#include "XMLParse.h"
 #include <direct.h>		// Needed for getcwd()
 #include <fstream>
+#include <regex>
+
+int nm;
 
 XMLParse::XMLParse(void)
 {
@@ -61,7 +64,18 @@ void XMLParse::Load(tinyxml2::XMLElement* a_pNode)
 *************************************************************************************************/
 void XMLParse::LoadItem(tinyxml2::XMLElement* a_pNode)
 {
-	int num = 0;
+	CRect rect;
+	m_listCtrl.GetClientRect(&rect);
+	int nColInterval = rect.Width() / 10;
+
+	m_listCtrl.InsertColumn(0, _T("ID"), LVCFMT_LEFT, nColInterval);
+	m_listCtrl.InsertColumn(1, _T("Name"), LVCFMT_LEFT, nColInterval * 2);
+	m_listCtrl.InsertColumn(2, _T("Subname"), LVCFMT_LEFT, 2 * nColInterval);
+	m_listCtrl.InsertColumn(3, _T("Tel"), LVCFMT_LEFT, 2 * nColInterval);
+	m_listCtrl.InsertColumn(4, _T("Address"), LVCFMT_LEFT, 3 * nColInterval);
+	m_listCtrl.SetExtendedStyle(LVS_EX_FULLROWSELECT);
+	m_listCtrl.SetExtendedStyle(LVS_EX_GRIDLINES);
+	//m_listCtrl.SetExtendedStyle( LVS_SHOWSELALWAYS);
 	while (a_pNode)		//iterate a_pNode till the last element
 	{
 		//parse and take all childs of each customer element
@@ -69,22 +83,20 @@ void XMLParse::LoadItem(tinyxml2::XMLElement* a_pNode)
 		tinyxml2::XMLElement* pSubname = pName->NextSiblingElement();	//subName child of customer element
 		tinyxml2::XMLElement* phone = pSubname->NextSiblingElement();	//tel child of customer element
 		tinyxml2::XMLElement* address = phone->NextSiblingElement();	//address child of customer element
-		
+
 		//take each child element text value
 		CString id = a_pNode->Attribute("id");
 		CString name = pName->GetText();
 		CString subname = pSubname->GetText();
 		CString tel = phone->GetText();
 		CString adres = address->GetText();
+
+		int nIndex = m_listCtrl.InsertItem(nm++, id);
+		m_listCtrl.SetItemText(nIndex, 1, name);
+		m_listCtrl.SetItemText(nIndex, 2, subname);
+		m_listCtrl.SetItemText(nIndex, 3, tel);
+		m_listCtrl.SetItemText(nIndex, 4, adres);
 		
-		//insert all childs to list control
-		//num variable is used for adding all child elements respectively to list control
-		m_listCtrl.InsertItem(num++, "----------data----------");
-		m_listCtrl.InsertItem(num++, "id : " + id);
-		m_listCtrl.InsertItem(num++, "Name : " + name);
-		m_listCtrl.InsertItem(num++, "SubName : " + subname);
-		m_listCtrl.InsertItem(num++, "Tel : " + tel);
-		m_listCtrl.InsertItem(num++, "Address : " + adres);
 		a_pNode = a_pNode->NextSiblingElement("customer");	// pass the next customer
 	}
 }
@@ -102,13 +114,28 @@ void XMLParse::deleteNode(tinyxml2::XMLElement* node, int num)
 		//delete node and save xml file as this node is deleted
 		xmlDoc.DeleteNode(node);	
 		xmlDoc.SaveFile("CustomerDB.xml");	
-		int index = num * 6;
-		int count = m_listCtrl.GetItemCount();
-		// Delete all items of this node from the list view control.
-		for (int nItem = 0; nItem < count; nItem++)
-		{
-			if(nItem >= index && nItem < (index+6))
-				m_listCtrl.DeleteItem(index);
-		}
+		m_listCtrl.DeleteItem(num);
+	}
+}
+
+/*
+The given argument to pattern() is regular expression. With the help of
+regular expression we can validate mobile number. 
+1) Begins with 0 or 91  2) Then contains 7 or 8 or 9.  3) Then contains 9 digits
+*/ 
+bool XMLParse::isValid(CString s)
+{
+	const std::regex pattern("(0|91)?[7-9][0-9]{9}");
+	std::string str((LPCTSTR)s);
+	// regex_match() is used to
+	// to find match between given number
+	// and regular expression
+	if (std::regex_match(str, pattern))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }

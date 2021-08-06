@@ -2,6 +2,9 @@
 // Don't forget the TinyXML include :-)
 #include "tinyxml2.h"
 #include "StdAfx.h"
+#include <iostream>
+
+extern int nm;
 
 class XMLParse : public CListCtrl
 {
@@ -19,4 +22,5 @@ public:
 	void LoadItemList(tinyxml2::XMLElement* a_pNode);
 	void LoadItem(tinyxml2::XMLElement* a_pNode);
 	void deleteNode(tinyxml2::XMLElement* node, int num);
+	bool isValid(CString s);
 };
