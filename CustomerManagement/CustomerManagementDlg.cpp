@@ -211,7 +211,7 @@ void CCustomerManagementDlg::OnBnClickedSave()
 		pItem = pItem->NextSiblingElement();	//pass next element
 		idd = pItem->ToElement()->Attribute("id");	//take its id to compare given id
 	}
-	if (idd == ID) {
+	if (idd == ID || !xmlParse.is_number(ID)) {
 		MessageBox(NULL, "Lütfen geçerli id giriniz!!!", MB_ICONWARNING | MB_DEFBUTTON2);
 		return;
 	}

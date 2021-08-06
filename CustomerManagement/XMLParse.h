@@ -22,5 +22,6 @@ public:
 	void LoadItemList(tinyxml2::XMLElement* a_pNode);
 	void LoadItem(tinyxml2::XMLElement* a_pNode);
 	void deleteNode(tinyxml2::XMLElement* node, int num);
-	bool isValid(CString s);
+	bool isValid(const CString& s);
+	bool is_number(const CString& s);
 };

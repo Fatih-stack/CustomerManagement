@@ -121,11 +121,11 @@ void XMLParse::deleteNode(tinyxml2::XMLElement* node, int num)
 /*
 The given argument to pattern() is regular expression. With the help of
 regular expression we can validate mobile number. 
-1) Begins with 0 or 91  2) Then contains 7 or 8 or 9.  3) Then contains 9 digits
+1) Begins with 0 or 91  2) Then contains 2 or 3 or 4 or 5.  3) Then contains 9 digits
 */ 
-bool XMLParse::isValid(CString s)
+bool XMLParse::isValid(const CString& s)
 {
-	const std::regex pattern("(0|91)?[7-9][0-9]{9}");
+	const std::regex pattern("(0|91)?[2-5][0-9]{9}");
 	std::string str((LPCTSTR)s);
 	// regex_match() is used to
 	// to find match between given number
@@ -138,4 +138,11 @@ bool XMLParse::isValid(CString s)
 	{
 		return false;
 	}
+}
+
+bool XMLParse::is_number(const CString& str)
+{
+	std::string s((LPCTSTR)str);
+	return !s.empty() && std::find_if(s.begin(),
+		s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
